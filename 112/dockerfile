@@ -1,0 +1,62 @@
+FROM python:3.10.13
+
+ENV DEBIAN_FRONTEND noninteractive
+
+RUN apt-get update && \
+    apt-get install -y \
+        software-properties-common \
+        build-essential \
+        make \
+        git \
+        vim \
+        wget \
+        curl \
+        zip \
+        unzip \
+        tar
+
+ARG CMAKE_VERSION=3.27.6
+
+RUN wget https://github.com/Kitware/CMake/releases/download/v${CMAKE_VERSION}/cmake-${CMAKE_VERSION}-linux-x86_64.tar.gz && \
+    tar zxvf cmake-${CMAKE_VERSION}-linux-x86_64.tar.gz && \
+    mv cmake-${CMAKE_VERSION}-linux-x86_64 cmake-${CMAKE_VERSION} && \
+    ln -sf /cmake-${CMAKE_VERSION}/bin/* /usr/bin
+
+### Install Opencv from source ##############
+WORKDIR /
+
+RUN apt-get update && \
+    apt-get install -y \
+        gcc \
+        g++ \
+        gdb \
+        python3-numpy \
+        libavcodec-dev \
+        libavformat-dev \
+        libswscale-dev \
+        libgstreamer-plugins-base1.0-dev \
+        libgstreamer1.0-dev \
+        libgtk-3-dev \
+        libpng-dev \
+        libpng-dev \
+        libpng-dev \
+        libpng-dev \
+        libpng-dev
+
+ENV OPENCV_VERSION=4.8.1
+
+WORKDIR /opencv_lib/
+RUN git clone --branch ${OPENCV_VERSION}  --depth 1  https://github.com/opencv/opencv.git && \
+    git clone --branch ${OPENCV_VERSION}  --depth 1  https://github.com/opencv/opencv_contrib.git
+
+WORKDIR /opencv_lib/opencv/
+RUN mkdir build && \
+    cd build && \
+    cmake -DOPENCV_EXTRA_MODULES_PATH=/opencv_lib/opencv_contrib/modules .. && \
+    make -j$(nproc) && \
+    make install && \
+    ldconfig
+
+WORKDIR /app/
+
+CMD ["tail", "-f", "/dev/null"]
