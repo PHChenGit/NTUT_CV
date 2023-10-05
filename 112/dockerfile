@@ -1,35 +1,27 @@
-FROM python:3.10.13
+FROM ubuntu:jammy
 
 ENV DEBIAN_FRONTEND noninteractive
 
+### These packages which are installed after tar are OpenCV dependencies ####
 RUN apt-get update && \
+    apt-get upgrade -y && \
     apt-get install -y \
         software-properties-common \
         build-essential \
         make \
+        cmake \
         git \
         vim \
         wget \
         curl \
         zip \
         unzip \
-        tar
-
-ARG CMAKE_VERSION=3.27.6
-
-RUN wget https://github.com/Kitware/CMake/releases/download/v${CMAKE_VERSION}/cmake-${CMAKE_VERSION}-linux-x86_64.tar.gz && \
-    tar zxvf cmake-${CMAKE_VERSION}-linux-x86_64.tar.gz && \
-    mv cmake-${CMAKE_VERSION}-linux-x86_64 cmake-${CMAKE_VERSION} && \
-    ln -sf /cmake-${CMAKE_VERSION}/bin/* /usr/bin
-
-### Install Opencv from source ##############
-WORKDIR /
-
-RUN apt-get update && \
-    apt-get install -y \
+        tar \
+        pkg-config \
         gcc \
         g++ \
         gdb \
+        python3.10-dev \
         python3-numpy \
         libavcodec-dev \
         libavformat-dev \
@@ -38,25 +30,61 @@ RUN apt-get update && \
         libgstreamer1.0-dev \
         libgtk-3-dev \
         libpng-dev \
-        libpng-dev \
-        libpng-dev \
-        libpng-dev \
-        libpng-dev
+        libjpeg-dev \
+        libopenexr-dev \
+        libtiff-dev \
+        libwebp-dev \
+        libtbb2 \
+        libtbb-dev
 
-ENV OPENCV_VERSION=4.8.1
+### Install Opencv from source ##############
+
+ARG OPENCV_VERSION=4.8.1
 
 WORKDIR /opencv_lib/
-RUN git clone --branch ${OPENCV_VERSION}  --depth 1  https://github.com/opencv/opencv.git && \
-    git clone --branch ${OPENCV_VERSION}  --depth 1  https://github.com/opencv/opencv_contrib.git
+RUN git clone --branch ${OPENCV_VERSION}  --depth 1  https://github.com/opencv/opencv.git
 
 WORKDIR /opencv_lib/opencv/
 RUN mkdir build && \
     cd build && \
-    cmake -DOPENCV_EXTRA_MODULES_PATH=/opencv_lib/opencv_contrib/modules .. && \
+    cmake \
+        -D CMAKE_INSTALL_PREFIX=/usr/local \
+        -D CMAKE_BUILD_TYPE=RELEASE \
+        -D OPENCV_ENABLE_NONFREE=ON \
+        -D OPENCV_GENERATE_PKGCONFIG=ON \
+        -D PYTHON3_EXECUTABLE=$(which python3) \
+        -D PYTHON_DEFAULT_EXECUTABLE=$(which python3) \
+        -D PYTHON3_INCLUDE_DIR=$(python3 -c "from distutils.sysconfig import get_python_inc; print(get_python_inc())") \
+        -D PYTHON3_PACKAGES_PATH=$(python3 -c "from distutils.sysconfig import get_python_lib; print(get_python_lib())") \
+        -D WITH_CUDA=OFF \
+        -D BUILD_TIFF=ON \
+        -D BUILD_opencv_java=OFF \
+        -D WITH_OPENGL=ON \
+        -D WITH_OPENCL=ON \
+        -D WITH_IPP=ON \
+        -D WITH_TBB=ON \
+        -D WITH_EIGEN=OFF \
+        -D WITH_V4L=ON \
+        -D WITH_VTK=OFF \
+        -D BUILD_TESTS=OFF \
+        -D BUILD_PERF_TESTS=OFF \
+        -D INSTALL_C_EXAMPLES=OFF \
+        -D INSTALL_PYTHON_EXAMPLES=OFF \
+        -D BUILD_EXAMPLES=OFF .. && \
     make -j$(nproc) && \
     make install && \
-    ldconfig
+    ldconfig && \
+    ln -s /usr/local/lib/python3.10/site-packages/cv2/python-3.10/cv2.cpython-38-x86_64-linux-gnu.so cv2.so && \
+    ln -s /usr/local/include/opencv4/opencv2 /usr/local/include/opencv2
+
+RUN sed -i "s/NumPyArrayGeneric = numpy.ndarray\[typing.Any, numpy.dtype\[numpy.generic\]\]/NumPyArrayGeneric = 'numpy.ndarray[typing.Any, numpy.dtype[numpy.generic]]'/g" /usr/lib/python3/dist-packages/cv2/typing/__init__.py && \
+    sed -i "s/NumPyArrayGeneric = numpy.ndarray/NumPyArrayGeneric = 'numpy.ndarray'/g" /usr/lib/python3/dist-packages/cv2/typing/__init__.py && \
+    sed -i "s/NumPyArrayFloat32 = numpy.ndarray\[typing.Any, numpy.dtype\[numpy.float32\]\]/NumPyArrayFloat32 = 'numpy.ndarray[typing.Any, numpy.dtype[numpy.float32]]'/g" /usr/lib/python3/dist-packages/cv2/typing/__init__.py && \
+    sed -i "s/NumPyArrayFloat32 = numpy.ndarray/NumPyArrayFloat32 = 'numpy.ndarray'/g" /usr/lib/python3/dist-packages/cv2/typing/__init__.py && \
+    sed -i "s/NumPyArrayFloat64 = numpy.ndarray\[typing.Any, numpy.dtype\[numpy.float64\]\]/NumPyArrayFloat64 = 'numpy.ndarray[typing.Any, numpy.dtype[numpy.float64]]'/g" /usr/lib/python3/dist-packages/cv2/typing/__init__.py && \
+    sed -i "s/NumPyArrayFloat64 = numpy.ndarray/NumPyArrayFloat64 = 'numpy.ndarray'/g" /usr/lib/python3/dist-packages/cv2/typing/__init__.py
+
 
 WORKDIR /app/
 
-CMD ["tail", "-f", "/dev/null"]
+CMD ["/bin/bash"]
