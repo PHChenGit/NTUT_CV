@@ -4,9 +4,7 @@ import sys
 
 
 def convert_to_gray(img):
-    gray = np.dot(img[..., :3], [0.2989, 0.5870, 0.1140]).astype(np.uint8)
-    cv.imshow("gray", gray)
-    return gray
+    return np.dot(img[..., :3], [0.2989, 0.5870, 0.1140]).astype(np.uint8)
 
 
 def padding_zeros(gray_img):
@@ -41,8 +39,7 @@ def convolution(gray_img):
 
                 try:
                     if y % strides == 0:
-                        new_img[x, y] = (kernel * padded_img[x:x + width_kernel, y:y + height_kernel]).sum(
-                            dtype=np.uint8)
+                        new_img[x, y] = (kernel * padded_img[x:x + width_kernel, y:y + height_kernel]).sum()
                 except:
                     break
 
@@ -58,16 +55,21 @@ def binary_operation():
 
 
 if __name__ == '__main__':
-    # img = cv.imread("../lena.png")
-    img = cv.imread("./test_img/aeroplane.png")
+    img = cv.imread("../lena.png")
+    # img = cv.imread("./test_img/aeroplane.png")
     if img is None:
         sys.exit("Could not read the image.")
 
     np_img = np.array(img, dtype=np.float32)
-    cv.imshow("Display window", img)
+    cv.imshow("Input image", img)
+
     q1_ans = convert_to_gray(np_img)
+    cv.imshow("gray", q1_ans)
 
     q2_ans = convolution(q1_ans)
+    cv.imshow("not saved", q2_ans)
+    cv.imwrite("./test_img/aeroplane_test_q2.png", q2_ans)
+    q2_ans = cv.imread("./test_img/aeroplane_test_q2.png")
     cv.imshow("Convolution", q2_ans)
 
     k = cv.waitKey(0)
