@@ -15,6 +15,8 @@ docker run -it \
     --volume="$(pwd):/app/" \
     --net=host \
     --privileged \
-    tokohsun/opencv:4.8.1 
+    tokohsun/opencv:4.8.1
+
+docker exec -it tokohsun/opencv:4.8.1 /bin/bash
 
 echo "Done!!"
