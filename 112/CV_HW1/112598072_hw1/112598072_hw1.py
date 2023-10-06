@@ -87,7 +87,9 @@ if __name__ == '__main__':
 
         q2_ans = convolution(q1_ans, kernel)
         """
-        Because of q2_ans is a 2D array, but the opencv accept 3D array
+        The variable q2_ans is a 2D array, if you want to show the 2D array as am image,
+        you have to convert it to a 3D array.
+        If you pass a 2D array into cv.show method, it will present an incorrect result.
         """
         # cv.imshow("before saved convolution", np.stack((q2_ans,)*3, axis=-1))
 
