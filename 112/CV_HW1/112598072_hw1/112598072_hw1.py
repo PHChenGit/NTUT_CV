@@ -1,18 +1,19 @@
 import cv2 as cv
 import numpy as np
+from os.path import exists
 import sys
 
 
 def convert_to_gray(img):
-    return np.dot(img[..., :3], [0.2989, 0.5870, 0.1140]).astype(np.uint8)
+    return np.dot(img, [0.2989, 0.5870, 0.1140]).astype(np.uint8)
 
 
 def padding_zeros(gray_img):
     return np.pad(gray_img, ((1, 1), (1, 1)), mode='constant')
 
 
-def convolution(gray_img):
-    kernel = np.array([-1, -1, -1, -1, 8, -1, -1, -1, -1]).reshape((3, 3))
+def convolution(gray_img, kernel):
+    kernel = np.flipud(np.fliplr(kernel))
     padding = 0
     strides = 1
 
@@ -23,7 +24,7 @@ def convolution(gray_img):
     height_output = int(((height_gray_img - kernel.shape[1] + 2 * padding) / strides) + 1)
 
     padded_img = padding_zeros(gray_img)
-    new_img = np.zeros((width_output, height_output))
+    new_img = np.zeros((width_output, height_output), dtype=np.uint8)
 
     """
     The convolution core
@@ -39,7 +40,8 @@ def convolution(gray_img):
 
                 try:
                     if y % strides == 0:
-                        new_img[x, y] = (kernel * padded_img[x:x + width_kernel, y:y + height_kernel]).sum()
+                        pixel_val = (kernel * padded_img[x:x + width_kernel, y:y + height_kernel]).sum()
+                        new_img[x, y] = np.clip(pixel_val, 0, 255).astype(np.uint8)
                 except:
                     break
 
@@ -54,22 +56,45 @@ def binary_operation():
     pass
 
 
+def save_img(img, img_path):
+    """
+    To avoid saving duplicate image
+    """
+    if not exists(img_path):
+        try:
+            cv.imwrite(img_path, img)
+        except:
+            print("Write img error")
+
+
 if __name__ == '__main__':
-    img = cv.imread("../lena.png")
-    # img = cv.imread("./test_img/aeroplane.png")
-    if img is None:
-        sys.exit("Could not read the image.")
+    images = ["lena", "aeroplane", "taipei101"]
+    input_dir = "./test_img/"
+    output_dir = "./result_img/"
+    kernel = np.array([-1, -1, -1, -1, 8, -1, -1, -1, -1]).reshape((3, 3))
 
-    np_img = np.array(img, dtype=np.float32)
-    cv.imshow("Input image", img)
+    for img in images:
+        img = cv.imread(f"{input_dir}{img}.png")
+        if img is None:
+            sys.exit("Could not read the image.")
 
-    q1_ans = convert_to_gray(np_img)
-    cv.imshow("gray", q1_ans)
+        np_img = np.array(img, dtype=np.uint8)
+        cv.imshow("Input image", img)
 
-    q2_ans = convolution(q1_ans)
-    cv.imshow("not saved", q2_ans)
-    cv.imwrite("./test_img/aeroplane_test_q2.png", q2_ans)
-    q2_ans = cv.imread("./test_img/aeroplane_test_q2.png")
-    cv.imshow("Convolution", q2_ans)
+        q1_ans = convert_to_gray(np_img)
+        save_img(q1_ans, f"{output_dir}img_q1.png")
+        cv.imshow("gray", q1_ans)
 
-    k = cv.waitKey(0)
+        q2_ans = convolution(q1_ans, kernel)
+        """
+        Because of q2_ans is a 2D array, but the opencv accept 3D array
+        """
+        # cv.imshow("before saved convolution", np.stack((q2_ans,)*3, axis=-1))
+
+        save_img(q2_ans, f"{output_dir}img_q2.png")
+
+        q2_ans = cv.imread(f"{output_dir}img_q2.png")
+        cv.imshow("Convolution", q2_ans)
+
+        k = cv.waitKey(0)
+        break
