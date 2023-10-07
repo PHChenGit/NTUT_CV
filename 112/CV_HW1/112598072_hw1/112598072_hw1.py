@@ -51,13 +51,14 @@ def convolution(gray_img, kernel):
 def pooling(img):
     kernel_size = 2
     strides = 2
+    padding = 0
 
-    width_output = int(((img.shape[0] - kernel_size) // strides) + 1)
-    height_output = int(((img.shape[1] - kernel_size) // strides) + 1)
-    pooled_img = np.zeros((width_output, height_output), dtype=np.uint8)
+    width = int(((img.shape[0] - kernel_size + 2 ** padding) // strides) + 1)
+    height = int(((img.shape[1] - kernel_size + 2 ** padding) // strides) + 1)
+    pooled_img = np.zeros((width, height), dtype=np.uint8)
 
-    for x in range(0, width_output, strides):
-        for y in range(0, height_output, strides):
+    for x in range(0, img.shape[0], strides):
+        for y in range(0, img.shape[1], strides):
             window = img[x:x+kernel_size, y:y+kernel_size]
             pooled_img[x//strides, y//strides] = window.max().astype(np.uint8)
     return pooled_img
