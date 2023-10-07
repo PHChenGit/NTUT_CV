@@ -20,8 +20,8 @@ def convolution(gray_img, kernel):
     width_gray_img, height_gray_img = gray_img.shape
     width_kernel, height_kernel = kernel.shape
 
-    width_output = int(((width_gray_img - kernel.shape[0] + 2 * padding) / strides) + 1)
-    height_output = int(((height_gray_img - kernel.shape[1] + 2 * padding) / strides) + 1)
+    width_output = int(((width_gray_img - kernel.shape[0] + 2 * padding) // strides) + 1)
+    height_output = int(((height_gray_img - kernel.shape[1] + 2 * padding) // strides) + 1)
 
     padded_img = padding_zeros(gray_img)
     new_img = np.zeros((width_output, height_output), dtype=np.uint8)
@@ -48,8 +48,19 @@ def convolution(gray_img, kernel):
     return new_img
 
 
-def pooling():
-    pass
+def pooling(img):
+    kernel_size = 2
+    strides = 2
+
+    width_output = int(((img.shape[0] - kernel_size) // strides) + 1)
+    height_output = int(((img.shape[1] - kernel_size) // strides) + 1)
+    pooled_img = np.zeros((width_output, height_output), dtype=np.uint8)
+
+    for x in range(0, width_output, strides):
+        for y in range(0, height_output, strides):
+            window = img[x:x+kernel_size, y:y+kernel_size]
+            pooled_img[x//strides, y//strides] = window.max().astype(np.uint8)
+    return pooled_img
 
 
 def binary_operation():
@@ -96,8 +107,14 @@ if __name__ == '__main__':
 
         save_img(q2_ans, f"{output_dir}img_q2.png")
 
-        q2_ans = cv.imread(f"{output_dir}img_q2.png")
-        cv.imshow("Convolution", q2_ans)
+        q2_ans_img = cv.imread(f"{output_dir}img_q2.png")
+        cv.imshow("Convolution", q2_ans_img)
+
+        """
+        Q3: Max pooling with kernel 2x2 and strides 2
+        """
+        q3_ans = pooling(q2_ans)
+        cv.imshow("pooling", q3_ans)
 
         k = cv.waitKey(0)
         break
