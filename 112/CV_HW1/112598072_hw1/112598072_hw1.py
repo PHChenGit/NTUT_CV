@@ -65,8 +65,8 @@ def pooling(img):
 
 
 def binary_operation(img):
-    threshold = 128
-    binary_img = (img > threshold).astype(np.uint8)
+    threshold = 130
+    binary_img = ((img >= threshold) * 255).astype(np.uint8)
     return binary_img
 
 
