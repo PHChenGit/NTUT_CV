@@ -81,17 +81,18 @@ if __name__ == '__main__':
         np_img = np.array(img, dtype=np.uint8)
         cv.imshow("Input image", img)
 
+        """
+        Q1: Convert rgb images to gray-scale 
+        """
         q1_ans = convert_to_gray(np_img)
         save_img(q1_ans, f"{output_dir}img_q1.png")
         cv.imshow("gray", q1_ans)
 
+        """
+        Q2: Convolution
+        The convolution result is a 2D array
+        """
         q2_ans = convolution(q1_ans, kernel)
-        """
-        The variable q2_ans is a 2D array, if you want to show the 2D array as am image,
-        you have to convert it to a 3D array.
-        If you pass a 2D array into cv.show method, it will present an incorrect result.
-        """
-        # cv.imshow("before saved convolution", np.stack((q2_ans,)*3, axis=-1))
 
         save_img(q2_ans, f"{output_dir}img_q2.png")
 
