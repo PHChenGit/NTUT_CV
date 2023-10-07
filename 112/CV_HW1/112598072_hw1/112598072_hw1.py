@@ -63,8 +63,10 @@ def pooling(img):
     return pooled_img
 
 
-def binary_operation():
-    pass
+def binary_operation(img):
+    threshold = 128
+    binary_img = (img > threshold).astype(np.uint8)
+    return binary_img
 
 
 def save_img(img, img_path):
@@ -75,7 +77,7 @@ def save_img(img, img_path):
         try:
             cv.imwrite(img_path, img)
         except:
-            print("Write img error")
+            print("Save image failed")
 
 
 if __name__ == '__main__':
@@ -84,8 +86,8 @@ if __name__ == '__main__':
     output_dir = "./result_img/"
     kernel = np.array([-1, -1, -1, -1, 8, -1, -1, -1, -1]).reshape((3, 3))
 
-    for img in images:
-        img = cv.imread(f"{input_dir}{img}.png")
+    for img_name in images:
+        img = cv.imread(f"{input_dir}{img_name}.png")
         if img is None:
             sys.exit("Could not read the image.")
 
@@ -96,7 +98,8 @@ if __name__ == '__main__':
         Q1: Convert rgb images to gray-scale 
         """
         q1_ans = convert_to_gray(np_img)
-        save_img(q1_ans, f"{output_dir}img_q1.png")
+        q1_ans_file = f"{output_dir}{img_name}_Q1.png"
+        save_img(q1_ans, q1_ans_file)
         cv.imshow("gray", q1_ans)
 
         """
@@ -104,17 +107,26 @@ if __name__ == '__main__':
         The convolution result is a 2D array
         """
         q2_ans = convolution(q1_ans, kernel)
-
-        save_img(q2_ans, f"{output_dir}img_q2.png")
-
-        q2_ans_img = cv.imread(f"{output_dir}img_q2.png")
+        q2_ans_file = f"{output_dir}{img_name}_Q2.png"
+        save_img(q2_ans, q2_ans_file)
+        q2_ans_img = cv.imread(q2_ans_file)
         cv.imshow("Convolution", q2_ans_img)
 
         """
         Q3: Max pooling with kernel 2x2 and strides 2
         """
         q3_ans = pooling(q2_ans)
+        q3_ans_file = f"{output_dir}{img_name}_Q3.png"
+        save_img(q3_ans, q3_ans_file)
         cv.imshow("pooling", q3_ans)
 
+        """
+        Q4: Binary image
+        """
+        q4_ans = binary_operation(q3_ans)
+        q4_ans_file = f"{output_dir}{img_name}_Q4.png"
+        save_img(q4_ans, q4_ans_file)
+        q4_img = cv.imread(q4_ans_file)
+        cv.imshow("binary", q4_img)
+
         k = cv.waitKey(0)
-        break
