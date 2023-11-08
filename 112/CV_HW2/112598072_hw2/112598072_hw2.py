@@ -6,9 +6,16 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 
+def flatten(arr):
+    res = []
+    for y in range(arr.shape[1]):
+        for x in range(arr.shape[0]):
+            res.append(arr[x][y])
+    return res
+
+
 def convert_to_gray(img):
     return np.dot(img, [0.2989, 0.5870, 0.1140]).astype(np.uint8)
-
 
 
 def mean_filter(img, kernel_size=3):
@@ -102,14 +109,16 @@ def img_histogram(img_path, output_path, title):
     img = cv.imread(img_path)
     gray_img = convert_to_gray(img)
 
-    x_axis_vals = [n for n in range(0, 256, 50)]
-    x_axis_vals.append(255)
-
     plt.xlabel('Pixel value')
     plt.ylabel('Frequency')
     plt.title(title)
-    plt.hist(gray_img.flatten(), 256, (0, 255), color='deepskyblue')
+    plt.hist(flatten(gray_img), 256, (0, 255))
 
+    """
+    After called the show function,
+    plt will create a new image layer,
+    so the saved image will be blank
+    """
     # plt.show()
     plt.savefig(output_path)
     plt.cla()
@@ -139,6 +148,14 @@ if __name__ == '__main__':
             "window_name": "noise2_q2"
         }],
         "q3": [{
+            "input_img": f"{input_dir}/noise1.png",
+            "output_img": f"{output_dir}/noise1_his.png",
+            "window_name": "noise1_his"
+        }, {
+            "input_img": f"{input_dir}/noise2.png",
+            "output_img": f"{output_dir}/noise2_his.png",
+            "window_name": "noise2_his"
+        }, {
             "input_img": f"{output_dir}/noise1_q1.png",
             "output_img": f"{output_dir}/noise1_q1_his.png",
             "window_name": "noise1_q1_his"
@@ -154,14 +171,6 @@ if __name__ == '__main__':
             "input_img": f"{output_dir}/noise2_q2.png",
             "output_img": f"{output_dir}/noise2_q2_his.png",
             "window_name": "noise2_q2_his"
-        }, {
-            "input_img": f"{input_dir}/noise1.png",
-            "output_img": f"{output_dir}/noise1_his.png",
-            "window_name": "noise1_his"
-        }, {
-            "input_img": f"{input_dir}/noise2.png",
-            "output_img": f"{output_dir}/noise2_his.png",
-            "window_name": "noise2_his"
         }]
     }
 
@@ -195,3 +204,6 @@ if __name__ == '__main__':
         img_histogram(output_img_path_list["q3"][idx]["input_img"],
                       output_img_path_list["q3"][idx]["output_img"],
                       output_img_path_list["q3"][idx]["window_name"])
+
+    # img_histogram("./test_img/noise2.png", "./result_img/noise2_his.png", "noise2_his")
+    # img_histogram("./result_img/noise2_q2.png", "./result_img/noise2_q2_his.png", "noise2_q2_his")
