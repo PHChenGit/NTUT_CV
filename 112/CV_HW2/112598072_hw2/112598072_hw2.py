@@ -110,8 +110,9 @@ def img_histogram(img_path, output_path, title):
     plt.title(title)
     plt.hist(gray_img.flatten(), 256, (0, 255), color='deepskyblue')
 
-    plt.show()
+    # plt.show()
     plt.savefig(output_path)
+    plt.cla()
 
 
 if __name__ == '__main__':
@@ -164,31 +165,31 @@ if __name__ == '__main__':
         }]
     }
 
-    # for idx in range(len(output_img_path_list["q1"])):
-    #     input_img_path = output_img_path_list["q1"][idx]["input_img"]
-    #     input_img = cv.imread(input_img_path)
-    #
-    #     if input_img is None:
-    #         sys.exit(f"The image {input_img_path} not found.")
-    #
-    #     q1_ans = mean_filter(convert_to_gray(input_img), 5)
-    #     cv.imshow(output_img_path_list["q1"][idx]["window_name"], q1_ans)
-    #     cv.imwrite(output_img_path_list["q1"][idx]["output_img"], q1_ans)
-    #
-    # cv.waitKey(0)
+    for idx in range(len(output_img_path_list["q1"])):
+        input_img_path = output_img_path_list["q1"][idx]["input_img"]
+        input_img = cv.imread(input_img_path)
 
-    # for idx in range(len(output_img_path_list["q2"])):
-    #     input_img_path = output_img_path_list["q2"][idx]["input_img"]
-    #     input_img = cv.imread(input_img_path)
-    #
-    #     if input_img is None:
-    #         sys.exit(f"The image {input_img_path} not found.")
-    #
-    #     q2_ans = median_filter(convert_to_gray(input_img), 5)
-    #     # cv.imshow(output_img_path_list["q2"][idx]["window_name"], q2_ans)
-    #     cv.imwrite(output_img_path_list["q2"][idx]["output_img"], q2_ans)
-    #
-    # cv.waitKey(0)
+        if input_img is None:
+            sys.exit(f"The image {input_img_path} not found.")
+
+        q1_ans = mean_filter(convert_to_gray(input_img), 5)
+        # cv.imshow(output_img_path_list["q1"][idx]["window_name"], q1_ans)
+        cv.imwrite(output_img_path_list["q1"][idx]["output_img"], q1_ans)
+
+    cv.waitKey(0)
+
+    for idx in range(len(output_img_path_list["q2"])):
+        input_img_path = output_img_path_list["q2"][idx]["input_img"]
+        input_img = cv.imread(input_img_path)
+
+        if input_img is None:
+            sys.exit(f"The image {input_img_path} not found.")
+
+        q2_ans = median_filter(convert_to_gray(input_img), 5)
+        # cv.imshow(output_img_path_list["q2"][idx]["window_name"], q2_ans)
+        cv.imwrite(output_img_path_list["q2"][idx]["output_img"], q2_ans)
+
+    cv.waitKey(0)
 
     for idx in range(len(output_img_path_list["q3"])):
         img_histogram(output_img_path_list["q3"][idx]["input_img"],
