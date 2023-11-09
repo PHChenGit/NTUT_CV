@@ -8,40 +8,33 @@ def convert_to_gray(img):
     return np.dot(img, [0.2989, 0.5870, 0.1140]).astype(np.uint8)
 
 
-def padding_zeros(gray_img):
-    return np.pad(gray_img, ((1, 1), (1, 1)), mode='constant')
+def convolution(input_img, k, padding=0, strides=1):
+    kernel = np.flipud(np.fliplr(k))
 
-
-def convolution(gray_img, kernel):
-    kernel = np.flipud(np.fliplr(kernel))
-    padding = 0
-    strides = 1
-
-    width_gray_img, height_gray_img = gray_img.shape
+    width_gray_img, height_gray_img = input_img.shape
     width_kernel, height_kernel = kernel.shape
 
     width_output = int(((width_gray_img - kernel.shape[0] + 2 * padding) // strides) + 1)
     height_output = int(((height_gray_img - kernel.shape[1] + 2 * padding) // strides) + 1)
 
-    padded_img = padding_zeros(gray_img)
+    if padding != 0:
+        padded_img = np.zeros((input_img.shape[0] + padding * 2, input_img.shape[1] + padding * 2))
+        padded_img[int(padding):int(-1 * padding), int(padding):int(-1 * padding)] = input_img
+    else:
+        padded_img = input_img
+
     new_img = np.zeros((width_output, height_output), dtype=np.uint8)
 
     """
     The convolution core
     """
-    for x in range(width_gray_img):
-        if x > (width_gray_img - width_kernel):
-            break
-
-        if x % strides == 0:
-            for y in range(height_gray_img):
-                if y > (height_gray_img - height_kernel):
-                    break
-
+    for y in range(height_gray_img):
+        if y % strides == 0:
+            for x in range(width_gray_img):
                 try:
-                    if y % strides == 0:
-                        pixel_val = (kernel * padded_img[x:x + width_kernel, y:y + height_kernel]).sum()
-                        new_img[x, y] = np.clip(pixel_val, 0, 255).astype(np.uint8)
+                    if x % strides == 0:
+                        window = (kernel * padded_img[x: x + width_kernel, y: y + height_kernel]).sum()
+                        new_img[x, y] = np.clip(window, 0, 255).astype(np.uint8)
                 except:
                     break
 
@@ -92,22 +85,21 @@ if __name__ == '__main__':
         if img is None:
             sys.exit("Could not read the image.")
 
-        np_img = np.array(img, dtype=np.uint8)
         cv.imshow("Input image", img)
 
         """
         Q1: Convert rgb images to gray-scale 
         """
-        q1_ans = convert_to_gray(np_img)
+        q1_ans = convert_to_gray(img)
         q1_ans_file = f"{output_dir}{img_name}_Q1.png"
         save_img(q1_ans, q1_ans_file)
-        cv.imshow("gray", q1_ans)
+        # cv.imshow("gray", q1_ans)
 
         """
         Q2: Convolution
         The convolution result is a 2D array
         """
-        q2_ans = convolution(q1_ans, kernel)
+        q2_ans = convolution(q1_ans, kernel, 1, 1)
         q2_ans_file = f"{output_dir}{img_name}_Q2.png"
         save_img(q2_ans, q2_ans_file)
         q2_ans_img = cv.imread(q2_ans_file)
