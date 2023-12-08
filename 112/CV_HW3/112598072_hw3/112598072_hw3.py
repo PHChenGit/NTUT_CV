@@ -101,8 +101,37 @@ def Canny(src):
         return (G, theta)
 
 
-    def non_maximum_suppression(img):
-        return
+    def non_maximum_suppression(magnitude, direction):
+        M, N = magnitude.shape
+        res = np.zeros((M, N))
+        angle = direction * 180 / np.pi
+        angle[angle < 0] += 180
+
+        for y in range(1, N-1):
+            for x in range(1, M-1):
+                q = 255
+                r = 255
+                neighbors = []
+
+                # angle 0
+                if (0 <= angle[x, y] < 22.5) or (157.5 <= angle[x, y] <= 180):
+                    neighbors = [magnitude[x, y + 1], magnitude[x, y - 1]]
+                # angle 45
+                elif 22.5 <= angle[x, y] < 67.5:
+                    neighbors = [magnitude[x + 1, y - 1], magnitude[x - 1, y + 1]]
+                # angle 90
+                elif 67.5 <= angle[x, y] < 112.5:
+                    neighbors = [magnitude[x + 1, y], magnitude[x - 1, y]]
+                # angle 135
+                elif 112.5 <= angle[x, y] < 157.5:
+                    neighbors = [magnitude[x - 1, y - 1], magnitude[x + 1, y + 1]]
+
+                # Compare current pixel with neighbors
+                # and then choose the bigger one
+                if magnitude[x, y] > np.max(neighbors):
+                    res[x, y] = magnitude[x, y]
+
+        return res
 
     # scale = 1
     # delta = 0
@@ -118,7 +147,9 @@ def Canny(src):
     # cv.imshow('Sobel Demo - Simple Edge Detector', grad)
 
     sobel_result, direction = sobel(src)
-    cv.imshow("Gradient result", sobel_result)
+    # cv.imshow("Gradient result", sobel_result)
+    non_maximum_img = non_maximum_suppression(sobel_result, direction)
+    cv.imshow("Non-maximum suppression result", sobel_result)
 
     cv.waitKey(0)
 
@@ -127,7 +158,7 @@ def Canny(src):
 
 if __name__ == '__main__':
     input_folder_path = './test_img/'
-    test_images = ['lena']
+    test_images = ['EmmaStone']
     output_folder_path = './result_img/'
 
     img = cv.imread(f"{input_folder_path}{test_images[0]}.png")
