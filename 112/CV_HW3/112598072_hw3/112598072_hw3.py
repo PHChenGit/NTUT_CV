@@ -96,10 +96,8 @@ def Canny(src):
                 g = np.sqrt((Ix[x, y] ** 2) + (Iy[x, y] ** 2))
                 G[x, y] = g / 255
 
-
         theta = np.arctan2(Ix, Iy)
-        return (G, theta)
-
+        return G, theta
 
     def non_maximum_suppression(magnitude, direction):
         M, N = magnitude.shape
@@ -109,8 +107,6 @@ def Canny(src):
 
         for y in range(1, N-1):
             for x in range(1, M-1):
-                q = 255
-                r = 255
                 neighbors = []
 
                 # angle 0
@@ -128,56 +124,79 @@ def Canny(src):
 
                 # Compare current pixel with neighbors
                 # and then choose the bigger one
-                if magnitude[x, y] > np.max(neighbors):
+                if magnitude[x, y] >= np.max(neighbors):
                     res[x, y] = magnitude[x, y]
 
         return res
 
-    # scale = 1
-    # delta = 0
-    # ddepth = cv.CV_16S
-    # grad_x = cv.Sobel(src, ddepth, 1, 0, ksize=3, scale=scale, delta=delta, borderType=cv.BORDER_DEFAULT)
-    # # Gradient-Y
-    # grad_y = cv.Sobel(src, ddepth, 0, 1, ksize=3, scale=scale, delta=delta, borderType=cv.BORDER_DEFAULT)
-    # abs_grad_x = cv.convertScaleAbs(grad_x)
-    # abs_grad_y = cv.convertScaleAbs(grad_y)
-    #
-    # grad = cv.addWeighted(abs_grad_x, 0.5, abs_grad_y, 0.5, 0)
+    # Define strong and weak edges
+    def double_threshold(img, low_threshold_ratio=0.01, high_threshold_ratio=0.09):
+        high_threshold = img.max() * high_threshold_ratio
+        low_threshold = high_threshold * low_threshold_ratio
+        threshold_res = np.zeros_like(img)
 
-    # cv.imshow('Sobel Demo - Simple Edge Detector', grad)
+        for y in range(img.shape[1]):
+            for x in range(img.shape[0]):
+                if img[x, y] >= high_threshold:
+                    threshold_res[x, y] = strong
+                elif low_threshold < img[x, y] < high_threshold:
+                    threshold_res[x, y] = weak
+                else:
+                    threshold_res[x, y] = 0
+        return threshold_res
+
+    # Weak edges that are connected to strong edges will be actual/real edges
+    # Weak edges that are not connected to strong edges will be removed
+    def hysteresis(img):
+        M, N = img.shape
+
+        for y in range(N):
+            for x in range(M):
+                # If the current pixel is weak and connect to strong edges, then modify this pixel to strong
+                # Otherwise, remove this pixel from edges
+                if img[x, y] == weak:
+                    if (img[x, y+1] == strong or img[x, y-1] == strong or img[x+1, y] == strong
+                        or img[x-1, y] == strong or img[x+1, y+1] == strong or img[x+1, y-1] == strong
+                        or img[x-1, y+1] == strong or img[x-1, y-1] == strong
+                    ):
+                        img[x, y] = strong
+                    else:
+                        img[x, y] = 0
+        return img
 
     sobel_result, direction = sobel(src)
-    # cv.imshow("Gradient result", sobel_result)
     non_maximum_img = non_maximum_suppression(sobel_result, direction)
-    cv.imshow("Non-maximum suppression result", sobel_result)
 
-    cv.waitKey(0)
+    strong = 255
+    weak = 100
 
-    return
+    double_threshold_res = double_threshold(non_maximum_img, 0.072, 0.15)
+    # cv.imshow("double threshold res", double_threshold_res)
+    res = hysteresis(double_threshold_res)
+
+    return res
 
 
 if __name__ == '__main__':
     input_folder_path = './test_img/'
-    test_images = ['EmmaStone']
+    test_images = ['lena', 'EmmaStone', 'img1', 'img2', 'img3']
     output_folder_path = './result_img/'
 
-    img = cv.imread(f"{input_folder_path}{test_images[0]}.png")
-    gray_img = convert_to_gray(img)
+    for idx in range(len(test_images)):
+        img = cv.imread(f"{input_folder_path}{test_images[idx]}.png")
+        print(f"Input image {test_images[idx]} shape: {img.shape}\n")
+        gray_img = convert_to_gray(img)
 
-    # Gaussian = cv.GaussianBlur(gray_img, (3, 3), 0)
-    # print(f"Gaussian shape: {Gaussian.shape}\n")
-    # cv.imshow("Opecv Gaussian Blur Result", Gaussian)
+        gaussian_blured_img = gaussian_blur(gray_img, 5)
+        cv.imwrite(f"{output_folder_path}{test_images[idx]}_q1.png", gaussian_blured_img)
 
-    gaussian_blured_img = gaussian_blur(gray_img, 5)
-    print(f"My Gaussian Blured Img: {gaussian_blured_img.shape}\n")
+        canny_result = Canny(gaussian_blured_img)
 
-    cv.imshow("gaussian blured img 1", gaussian_blured_img)
-    # cv.imwrite(f"{output_folder_path}{test_images[0]}_q1.png")
+        cv.imshow(f"{test_images[idx]}_q2.png", canny_result)
+        cv.imwrite(f"{output_folder_path}{test_images[idx]}_q1.png", canny_result)
+        cv.waitKey(0)
+
+
+        break
+    # cv.imshow("Canny Result", canny_resul)
     # cv.waitKey(0)
-
-    # CV_Canny = cv.Canny(gaussian_blured_img, 50, 50)
-
-    # cv.imshow("OpenCV Canny Result", gaussian_blured_img)
-
-    canny_resul = Canny(gaussian_blured_img)
-    cv.waitKey(0)
