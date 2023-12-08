@@ -60,9 +60,74 @@ def gaussian_blur(img, kernel_size=3, sigma=1.0):
     return np.asarray(res, dtype=np.uint8)
 
 
+def Canny(src):
+    def conv(img, kernel):
+        kernel_width, kernel_height = kernel.shape
+        if kernel_height != kernel_width:
+            raise Exception("Error, kernel should be a square matrix")
+        padding = kernel_width // 2
+
+        width_output = int(((img.shape[0] - kernel.shape[0] + 2 * padding) // 1.0) + 1)
+        height_output = int(((img.shape[1] - kernel.shape[1] + 2 * padding) // 1.0) + 1)
+
+        if padding != 0:
+            padded_img = np.zeros((img.shape[0] + padding * 2, img.shape[1] + padding * 2))
+            padded_img[int(padding):int(-1 * padding), int(padding):int(-1 * padding)] = img
+        else:
+            padded_img = img
+
+        new_img = np.zeros((width_output, height_output))
+
+        for y in range(img.shape[1]):
+            for x in range(img.shape[0]):
+                window = (kernel * padded_img[x:x+kernel_width, y:y+kernel_height])
+                new_img[x, y] = window.sum()
+        return new_img
+
+    def sobel(img):
+        Gx = np.array([[-1, 0, 1], [-2, 0, 2], [-1, 0, 1]], np.float32)
+        Gy = np.array([[-1, -2, -1], [0, 0, 0], [1, 2, 1]], np.float32)
+        Ix = conv(img, Gx)
+        Iy = conv(img, Gy)
+        G = np.zeros((img.shape[0], img.shape[1]))
+
+        for y in range(img.shape[1]):
+            for x in range(img.shape[0]):
+                g = np.sqrt((Ix[x, y] ** 2) + (Iy[x, y] ** 2))
+                G[x, y] = g / 255
+
+
+        theta = np.arctan2(Ix, Iy)
+        return (G, theta)
+
+
+    def non_maximum_suppression(img):
+        return
+
+    # scale = 1
+    # delta = 0
+    # ddepth = cv.CV_16S
+    # grad_x = cv.Sobel(src, ddepth, 1, 0, ksize=3, scale=scale, delta=delta, borderType=cv.BORDER_DEFAULT)
+    # # Gradient-Y
+    # grad_y = cv.Sobel(src, ddepth, 0, 1, ksize=3, scale=scale, delta=delta, borderType=cv.BORDER_DEFAULT)
+    # abs_grad_x = cv.convertScaleAbs(grad_x)
+    # abs_grad_y = cv.convertScaleAbs(grad_y)
+    #
+    # grad = cv.addWeighted(abs_grad_x, 0.5, abs_grad_y, 0.5, 0)
+
+    # cv.imshow('Sobel Demo - Simple Edge Detector', grad)
+
+    sobel_result, direction = sobel(src)
+    cv.imshow("Gradient result", sobel_result)
+
+    cv.waitKey(0)
+
+    return
+
+
 if __name__ == '__main__':
     input_folder_path = './test_img/'
-    test_images = ['img1']
+    test_images = ['lena']
     output_folder_path = './result_img/'
 
     img = cv.imread(f"{input_folder_path}{test_images[0]}.png")
@@ -77,4 +142,11 @@ if __name__ == '__main__':
 
     cv.imshow("gaussian blured img 1", gaussian_blured_img)
     # cv.imwrite(f"{output_folder_path}{test_images[0]}_q1.png")
+    # cv.waitKey(0)
+
+    # CV_Canny = cv.Canny(gaussian_blured_img, 50, 50)
+
+    # cv.imshow("OpenCV Canny Result", gaussian_blured_img)
+
+    canny_resul = Canny(gaussian_blured_img)
     cv.waitKey(0)
