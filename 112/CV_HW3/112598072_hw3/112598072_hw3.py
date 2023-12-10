@@ -170,21 +170,60 @@ def Canny(src):
     strong = 255
     weak = 100
 
-    double_threshold_res = double_threshold(non_maximum_img, 0.072, 0.15)
-    # cv.imshow("double threshold res", double_threshold_res)
+    double_threshold_res = double_threshold(non_maximum_img, 0.072, 0.2)
     res = hysteresis(double_threshold_res)
 
     return res
 
 
+def hough_transform(src):
+    M, N = src.shape
+    max_distance = int(np.sqrt((M**2) + (N**2)))
+
+    thetas = np.deg2rad(np.arange(-90, 90))
+    rhos = np.linspace(-max_distance, max_distance, 2*max_distance)
+    accumulator = np.zeros((2 * max_distance, len(thetas)), dtype=np.uint8)
+
+    for y in range(N):
+        for x in range(M):
+            if src[x, y] > 0:
+                for k in range(len(thetas)):
+                    rho = int(x * np.cos(thetas[k]) + y * np.sin(thetas[k])) + max_distance
+                    accumulator[rho, k] += 1
+
+    return accumulator, thetas, rhos
+
+
+def show_hough_transform(img, accumulator, thetas, rhos):
+    # Find peaks in the accumulator
+    peaks = np.argwhere(accumulator >= 40)  # You can adjust the threshold for peak detection
+    COLOR_RED = (0, 0, 255)
+
+    # Draw lines on the input image
+    for peak in peaks:
+        rho = rhos[peak[0]]
+        theta = thetas[peak[1]]
+        a = np.cos(theta)
+        b = np.sin(theta)
+        x0 = a * rho
+        y0 = b * rho
+        x1 = int(x0 + 1000 * (-b))
+        y1 = int(y0 + 1000 * (a))
+        x2 = int(x0 - 1000 * (-b))
+        y2 = int(y0 - 1000 * (a))
+        cv.line(img, (y1, x1), (y2, x2), COLOR_RED, 2)
+
+    return img
+
+
 if __name__ == '__main__':
     input_folder_path = './test_img/'
-    test_images = ['lena', 'EmmaStone', 'img1', 'img2', 'img3']
+    test_images = ['img1', 'img2', 'img3']
     output_folder_path = './result_img/'
 
     for idx in range(len(test_images)):
         img = cv.imread(f"{input_folder_path}{test_images[idx]}.png")
-        print(f"Input image {test_images[idx]} shape: {img.shape}\n")
+        # print(f"Input image {test_images[idx]} shape: {img.shape}\n")
         gray_img = convert_to_gray(img)
 
         gaussian_blured_img = gaussian_blur(gray_img, 5)
@@ -192,11 +231,12 @@ if __name__ == '__main__':
 
         canny_result = Canny(gaussian_blured_img)
 
-        cv.imshow(f"{test_images[idx]}_q2.png", canny_result)
-        cv.imwrite(f"{output_folder_path}{test_images[idx]}_q1.png", canny_result)
-        cv.waitKey(0)
+        # cv.imshow(f"{test_images[idx]}_q2.png", canny_result)
+        cv.imwrite(f"{output_folder_path}{test_images[idx]}_q2.png", canny_result)
 
+        accumulator, thetas, radius = hough_transform(canny_result)
+        draw_line_img = show_hough_transform(img, accumulator, thetas, radius)
+        cv.imshow(f"{test_images[idx]}_q3.png", draw_line_img)
+        cv.imwrite(f"{output_folder_path}{test_images[idx]}_q3.png", draw_line_img)
 
-        break
-    # cv.imshow("Canny Result", canny_resul)
-    # cv.waitKey(0)
+    cv.waitKey(0)
