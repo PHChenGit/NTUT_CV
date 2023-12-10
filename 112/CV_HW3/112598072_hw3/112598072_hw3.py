@@ -126,6 +126,8 @@ def Canny(src):
                 # and then choose the bigger one
                 if magnitude[x, y] >= np.max(neighbors):
                     res[x, y] = magnitude[x, y]
+                else:
+                    res[x, y] = 0
 
         return res
 
@@ -194,9 +196,9 @@ def hough_transform(src):
     return accumulator, thetas, rhos
 
 
-def show_hough_transform(img, accumulator, thetas, rhos):
+def show_hough_transform(img, accumulator, thetas, rhos, threshold):
     # Find peaks in the accumulator
-    peaks = np.argwhere(accumulator >= 40)  # You can adjust the threshold for peak detection
+    peaks = np.argwhere(accumulator >= threshold)  # You can adjust the threshold for peak detection
     COLOR_RED = (0, 0, 255)
 
     # Draw lines on the input image
@@ -220,23 +222,30 @@ if __name__ == '__main__':
     input_folder_path = './test_img/'
     test_images = ['img1', 'img2', 'img3']
     output_folder_path = './result_img/'
+    hough_line_threshold = [40, 55, 70]
 
     for idx in range(len(test_images)):
+        print(f'processing {test_images[idx]}.png')
         img = cv.imread(f"{input_folder_path}{test_images[idx]}.png")
         # print(f"Input image {test_images[idx]} shape: {img.shape}\n")
         gray_img = convert_to_gray(img)
 
         gaussian_blured_img = gaussian_blur(gray_img, 5)
+        print(f'{test_images[idx]}.png Gaussian Blur')
+        cv.imshow(f"Gaussian Blur {test_images[idx]}_q1.png", gaussian_blured_img)
         cv.imwrite(f"{output_folder_path}{test_images[idx]}_q1.png", gaussian_blured_img)
 
         canny_result = Canny(gaussian_blured_img)
-
-        # cv.imshow(f"{test_images[idx]}_q2.png", canny_result)
+        print(f'{test_images[idx]}.png Canny Edge Detection')
+        cv.imshow(f"Canny Edge Detection {test_images[idx]}_q2.png", canny_result)
         cv.imwrite(f"{output_folder_path}{test_images[idx]}_q2.png", canny_result)
 
         accumulator, thetas, radius = hough_transform(canny_result)
-        draw_line_img = show_hough_transform(img, accumulator, thetas, radius)
-        cv.imshow(f"{test_images[idx]}_q3.png", draw_line_img)
+        draw_line_img = show_hough_transform(img, accumulator, thetas, radius, hough_line_threshold[idx])
+        print(f'{test_images[idx]}.png Hough Transform')
+        cv.imshow(f"Hough Transform {test_images[idx]}_q3.png", draw_line_img)
         cv.imwrite(f"{output_folder_path}{test_images[idx]}_q3.png", draw_line_img)
 
-    cv.waitKey(0)
+        cv.waitKey(0)
+        cv.destroyAllWindows()
+    print('Done!!')
