@@ -67,6 +67,7 @@ def gaussian_blur(img, kernel_size=3, sigma=1.0):
 
 def Canny(src, low_threshold, high_threshold):
     def conv(input_img, kernel, strides=1):
+        kernel = np.flipud(np.fliplr(kernel))
         width_gray_img, height_gray_img = input_img.shape
         width_kernel, height_kernel = kernel.shape
 
@@ -147,8 +148,6 @@ def Canny(src, low_threshold, high_threshold):
 
     # Define strong and weak edges
     def double_threshold(img, low_threshold, high_threshold):
-        # high_threshold = img.max() * high_threshold_ratio
-        # low_threshold = high_threshold * low_threshold_ratio
         threshold_res = np.zeros_like(img)
 
         for y in range(img.shape[1]):
@@ -187,11 +186,25 @@ def Canny(src, low_threshold, high_threshold):
     weak = 75
 
     double_threshold_res = double_threshold(non_maximum_img, low_threshold, high_threshold)
-    # cv.imshow('threshold', double_threshold_res)
     res = hysteresis(double_threshold_res)
 
     return res
 
+
+def remove_objects(img, x_ratio, y_ratio):
+    res = img.copy()
+    M, N = img.shape
+    x1 = int(M) * x_ratio[0]
+    x2 = int(M) * x_ratio[1]
+    y1 = int(N) * y_ratio[0]
+    y2 = int(N) * y_ratio[1]
+    # print('shape', img.shape)
+    print(f'x1: {x1}, x2: {x2}, y1: {y1}, y2: {y2}')
+    for y in range(N):
+        for x in range(M):
+            if x < x1 or x > x2 or y < y1 or y > y2:
+                res[x, y] = 0
+    return res
 
 def hough_transform(src):
     M, N = src.shape
@@ -231,7 +244,6 @@ def show_hough_transform(img, accumulator, thetas, rhos, threshold):
         y1 = int(y0 + 1000 * (a))
         x2 = int(x0 - 1000 * (-b))
         y2 = int(y0 - 1000 * (a))
-        # cv.line(img, (x1, y1), (x2, y2), COLOR_RED, THICKNESS, cv.LINE_AA)
         cv.line(draw_line_img, (y1, x1), (y2, x2), COLOR_RED, THICKNESS, cv.LINE_AA)
 
     return draw_line_img
@@ -241,37 +253,40 @@ if __name__ == '__main__':
     input_folder_path = './test_img/'
     test_images = ['img1', 'img2', 'img3']
     output_folder_path = './result_img/'
-    canny_low_threshold = [20, 30, 35]
-    canny_high_threshold = [30, 50, 52]
-    hough_line_threshold = [55, 54, 52]
+    canny_low_threshold = [20, 30, 20]
+    canny_high_threshold = [30, 50, 30]
+    hough_line_threshold = [50, 40, 43]
     KERNEL_SIZE = [3, 3, 5]
     SIGMA = [0.707, 1.0, 1.0]
+    x_ratio = [(0.5, 0.75), (0.5, 0.8), (0.6, 0.72)]
+    y_ratio = [(0.24, 0.8), (0.1, 0.9), (0.17, 0.8)]
 
-    for idx in range(1, len(test_images)):
+    for idx in range(len(test_images)):
         print(f'processing {test_images[idx]}.png')
         img = cv.imread(f"{input_folder_path}{test_images[idx]}.png")
         # print(f"Input image {test_images[idx]} shape: {img.shape}\n")
         gray_img = convert_to_gray(img)
 
         gaussian_blured_img = gaussian_blur(gray_img, KERNEL_SIZE[idx], SIGMA[idx])
-        print(f'{test_images[idx]}.png Gaussian Blur')
+        print(f'Gaussian Blur {test_images[idx]}.png ')
         # cv.imshow(f"Gaussian Blur {test_images[idx]}_q1.png", gaussian_blured_img)
         cv.imwrite(f"{output_folder_path}{test_images[idx]}_q1.png", gaussian_blured_img)
 
-        print(f'{test_images[idx]}.png Canny Edge Detection')
+        print(f'Canny Edge Detection {test_images[idx]}.png ')
         canny_result = Canny(gaussian_blured_img, canny_low_threshold[idx], canny_high_threshold[idx])
-        cv.imshow(f"Canny Edge Detection {test_images[idx]}_q2.png", canny_result)
+        # cv.imshow(f"Canny Edge Detection {test_images[idx]}_q2.png", canny_result)
         cv.imwrite(f"{output_folder_path}{test_images[idx]}_q2.png", canny_result)
 
-        print(f'{test_images[idx]}.png Hough Transform')
-        accumulator, thetas, radius = hough_transform(canny_result)
+        remove_objects_result = remove_objects(canny_result, x_ratio[idx], y_ratio[idx])
+
+        print(f'Hough Transform {test_images[idx]}.png ')
+        accumulator, thetas, radius = hough_transform(remove_objects_result)
         draw_line_img = show_hough_transform(img, accumulator, thetas, radius, hough_line_threshold[idx])
         cv.imshow(f"Hough Transform {test_images[idx]}_q3.png", draw_line_img)
         cv.imwrite(f"{output_folder_path}{test_images[idx]}_q3.png", draw_line_img)
 
         cv.waitKey(0)
         cv.destroyAllWindows()
-        break
     print('Done!!')
 
 
