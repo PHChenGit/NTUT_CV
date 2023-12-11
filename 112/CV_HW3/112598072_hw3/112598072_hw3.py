@@ -48,13 +48,18 @@ def gaussian_blur(img, kernel_size=3, sigma=1.0):
 
         return new_img
 
-    kernel = np.zeros((kernel_size, kernel_size), dtype=np.float32)
+    def gaussian_kernel(size, sigma):
+        kernel = np.zeros((size, size))
+        center = size // 2
 
-    for y in range(kernel.shape[1]):
-        for x in range(kernel.shape[0]):
-            window = np.exp(-(x ** 2 + y ** 2) / (2 * (sigma ** 2)))
-            kernel[x, y] = window
-    kernel /= 2 * np.pi * (sigma ** 2)
+        for x in range(size):
+            for y in range(size):
+                x_1 = x - center
+                y_1 = y - center
+                kernel[x, y] = (1 / (2 * np.pi * (sigma ** 2))) * np.exp(-(x_1 ** 2 + y_1 ** 2) / (2 * (sigma ** 2)))
+        return kernel / np.sum(kernel)
+
+    kernel = gaussian_kernel(kernel_size, sigma)
 
     res = conv(img, kernel, padding=kernel_size // 2)
     return np.asarray(res, dtype=np.uint8)
@@ -230,7 +235,8 @@ if __name__ == '__main__':
         # print(f"Input image {test_images[idx]} shape: {img.shape}\n")
         gray_img = convert_to_gray(img)
 
-        gaussian_blured_img = gaussian_blur(gray_img, 5)
+        gaussian_blured_img = gaussian_blur(gray_img, 3, 0.707)
+        # gaussian_blured_img = cv.GaussianBlur(gray_img, (5, 5), 1.0)
         print(f'{test_images[idx]}.png Gaussian Blur')
         cv.imshow(f"Gaussian Blur {test_images[idx]}_q1.png", gaussian_blured_img)
         cv.imwrite(f"{output_folder_path}{test_images[idx]}_q1.png", gaussian_blured_img)
