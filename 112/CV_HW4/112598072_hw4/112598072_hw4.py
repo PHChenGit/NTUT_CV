@@ -3,6 +3,8 @@ import numpy as np
 
 COLOR_RED = (0, 0, 255)
 points = []
+energy_min = []
+MAX_ITERATIONS = 500
 
 def flatten(arr):
     res = []
@@ -66,137 +68,45 @@ def gaussian_blur(img, kernel_size=3, sigma=1.0):
     return np.asarray(res, dtype=np.uint8)
 
 
-def Canny(src, low_threshold, high_threshold):
-    def conv(input_img, kernel, strides=1):
-        kernel = np.flipud(np.fliplr(kernel))
-        width_gray_img, height_gray_img = input_img.shape
-        width_kernel, height_kernel = kernel.shape
+def conv(input_img, kernel, strides=1):
+    height, width = input_img.shape
+    kernel_height, kernel_width = kernel.shape
 
-        padding = width_kernel // 2
-        width_output = int(((width_gray_img - kernel.shape[0] + 2 * padding) // strides) + 1)
-        height_output = int(((height_gray_img - kernel.shape[1] + 2 * padding) // strides) + 1)
+    padded_height = kernel_height // 2
+    padded_width = kernel_width // 2
 
-        if padding != 0:
-            padded_img = np.zeros((input_img.shape[0] + padding * 2, input_img.shape[1] + padding * 2))
-            padded_img[int(padding):int(-1 * padding), int(padding):int(-1 * padding)] = input_img
-        else:
-            padded_img = input_img
+    output_height = (height - kernel_height + 2 * padded_height) // strides + 1
+    output_width = (width - kernel_width + 2 * padded_width) // strides + 1
 
-        new_img = np.zeros((width_output, height_output), dtype=np.uint8)
+    padded_img = np.zeros((height + padded_height * 2, width + padded_width * 2))
+    padded_img[int(padded_height):int(-1 * padded_height), int(padded_width):int(-1 * padded_width)] = input_img
 
-        """
-        The convolution core
-        """
-        for y in range(height_gray_img):
-            if y % strides == 0:
-                for x in range(width_gray_img):
-                    try:
-                        if x % strides == 0:
-                            window = (kernel * padded_img[x: x + width_kernel, y: y + height_kernel]).sum()
-                            new_img[x, y] = np.clip(window, 0, 255).astype(np.uint8)
-                    except:
-                        break
+    new_img = np.zeros((output_height, output_width))
 
-        return new_img
+    for i in range(0, height - kernel_height + 1, strides):
+        for j in range(0, width - kernel_width + 1, strides):
+            new_img[i // strides, j // strides] = np.sum(padded_img[i:i + kernel_height, j:j + kernel_width] * kernel)
 
-    def sobel(img):
-        Gx = np.array([[-1, 0, 1], [-2, 0, 2], [-1, 0, 1]])
-        Gy = np.array([[-1, -2, -1], [0, 0, 0], [1, 2, 1]],)
-        Ix = conv(img, Gx)
-        Iy = conv(img, Gy)
+    return np.array(new_img)
 
-        G = np.zeros((img.shape[0], img.shape[1]), dtype=np.uint8)
+def sobel(img):
+    Gx = np.array([[-1, 0, 1], [-2, 0, 2], [-1, 0, 1]])
+    Gy = np.array([[-1, -2, -1], [0, 0, 0], [1, 2, 1]])
+    Ix = conv(img, Gx)
+    Iy = conv(img, Gy)
 
-        for y in range(img.shape[1]):
-            for x in range(img.shape[0]):
-                g = np.sqrt((Ix[x, y] ** 2) + (Iy[x, y] ** 2))
-                G[x, y] = g
-                # G[x, y] = g % 255
+    absIx = np.abs(Ix)
+    absIy = np.abs(Iy)
 
-
-        # cv.imshow('sobel', G.astype(np.uint8))
-        # cv.waitKey(0)
-        G = G.astype(np.uint8)
-        theta = np.arctan2(Iy, Ix) * 180 / np.pi
-        theta[theta < 0] += 180
-        return G, theta
-
-    def non_maximum_suppression(magnitude, directions):
-        res = np.zeros_like(magnitude)
-
-        for x in range(1, magnitude.shape[0] - 1):
-            for y in range(1, magnitude.shape[1] - 1):
-                angle = directions[x, y]
-
-                # Check for horizontal or vertical edges
-                if 0 <= angle < 22.5 or 157.5 <= angle <= 180:
-                    neighbors = [magnitude[x, y - 1], magnitude[x, y + 1]]
-                # Check for diagonal edges
-                elif 22.5 <= angle < 67.5:
-                    neighbors = [magnitude[x + 1, y - 1], magnitude[x - 1, y + 1]]
-                elif 67.5 <= angle < 112.5:
-                    neighbors = [magnitude[x + 1, y], magnitude[x - 1, y]]
-                else:
-                    neighbors = [magnitude[x - 1, y - 1], magnitude[x + 1, y + 1]]
-
-                # Suppress non-maximum values
-                if magnitude[x, y] >= max(neighbors):
-                    res[x, y] = magnitude[x, y]
-                else:
-                    res[x, y] = 0
-
-        return res
-
-    # Define strong and weak edges
-    def double_threshold(img, low_threshold, high_threshold):
-        threshold_res = np.zeros_like(img)
-
-        for y in range(img.shape[1]):
-            for x in range(img.shape[0]):
-                if img[x, y] >= high_threshold:
-                    threshold_res[x, y] = strong
-                elif low_threshold < img[x, y] < high_threshold:
-                    threshold_res[x, y] = weak
-                else:
-                    threshold_res[x, y] = 0
-        return threshold_res
-
-    # Weak edges that are connected to strong edges will be actual/real edges
-    # Weak edges that are not connected to strong edges will be removed
-    def hysteresis(img):
-        M, N = img.shape
-
-        for y in range(1, N-1):
-            for x in range(1, M-1):
-                # If the current pixel is weak and connect to strong edges, then modify this pixel to strong
-                # Otherwise, remove this pixel from edges
-                if img[x, y] == weak:
-                    if (img[x, y+1] == strong or img[x, y-1] == strong or img[x+1, y] == strong
-                        or img[x-1, y] == strong or img[x+1, y+1] == strong or img[x+1, y-1] == strong
-                        or img[x-1, y+1] == strong or img[x-1, y-1] == strong
-                    ):
-                        img[x, y] = strong
-                    else:
-                        img[x, y] = 0
-        return img
-
-    sobel_result, direction = sobel(src)
-    non_maximum_img = non_maximum_suppression(sobel_result, direction)
-
-    strong = 255
-    weak = 75
-
-    double_threshold_res = double_threshold(non_maximum_img, low_threshold, high_threshold)
-    res = hysteresis(double_threshold_res)
-
-    return res
+    G = np.sqrt(absIx**2 + absIy**2).astype(np.uint8)
+    return G
 
 
 def set_init_points(img):
     M, N, _ = img.shape
     center_point = (M//2, N//2)
     radius = center_point[0] if center_point[0] < center_point[1] else center_point[1]
-    num_points = 20
+    num_points = 50
 
     # 計算小圓點的位置
     theta = np.linspace(0, 2 * np.pi, num_points, endpoint=False)
@@ -204,15 +114,52 @@ def set_init_points(img):
     circle_points_y = np.int32(center_point[1] + radius * 0.8 * np.sin(theta))
 
     for i in range(num_points):
-        point = (circle_points_x[i], circle_points_y[i])
+        point = (int(circle_points_x[i]), int(circle_points_y[i]))
         points.append(point)
-        cv.circle(img, point, 3, COLOR_RED, 2, cv.FILLED)
+        energy_min.append(np.inf)
 
-    # # cv.circle(image, (center_x, center_y), 5, (0, 255, 0), -1)
-    # cv.imshow('Image with Center and Circles', img)
-    # cv.waitKey(0)
-    # cv.destroyAllWindows()
+    draw_points(img)
     return img
+
+
+def draw_points(img):
+    for point in points:
+        cv.circle(img, point, 3, COLOR_RED, 2, cv.FILLED)
+    return
+
+
+def active_contour(magnitude, alpha, beta, gamma):
+    def cal_energy_contour(current_point, prev_point):
+        return np.sqrt(np.square(current_point[0] - prev_point[0]) + np.square(current_point[1] - prev_point[1]))
+
+    def cal_energy_curve(current_point, prev_point, next_point):
+        x = np.square(prev_point[0] - 2 * current_point[0] + next_point[0])
+        y = np.square(prev_point[1] - 2 * current_point[1] + next_point[1])
+        return np.sqrt((x+y))
+
+    for idx in range(len(points)):
+        point_x = points[idx][0]
+        point_y = points[idx][1]
+        prev_point = points[(idx + len(points) - 1) % len(points)]
+        next_point = points[(idx + 1) % len(points)]
+        e_min = np.inf
+
+        for x in range(-1, 2):
+            for y in range(-1, 2):
+                try:
+                    curr_point = (point_x + x, point_y + y)
+                    energy_cont = cal_energy_contour(curr_point, prev_point)
+                    energy_curve = cal_energy_curve(curr_point, prev_point, next_point)
+                    energy_total = alpha * energy_cont + beta * energy_curve + gamma * (-magnitude[point_x][point_y])
+
+                    if energy_total < e_min:
+                        # print(f"e_total: {energy_total}, e_min: {e_min}")
+                        e_min = energy_total
+                        points[idx] = curr_point
+                except:
+                    print(f"e_cont: {energy_cont}, e_curv: {energy_curve}, magnitude: {magnitude[point_x][point_y]}")
+
+    return
 
 if __name__ == '__main__':
     # test image 1
@@ -221,4 +168,33 @@ if __name__ == '__main__':
     img = set_init_points(src_img)
     gray_img = convert_to_gray(copy_src_img)
     blured_img = gaussian_blur(gray_img, 3, 1.0)
+    sobel_result = sobel(blured_img)
+    cv.imshow('sobel', sobel_result.astype(np.uint8))
+    cv.waitKey(0)
 
+    # paint_img = src_img.copy()
+    #
+    # ALPHA = 0.3
+    # BETA = 0.23
+    # GAMMA = 0.9
+    #
+    # for step in range(MAX_ITERATIONS):
+    #     current_points = np.array(points).astype(np.int32)
+    #     # print(f"curren points: {current_points[0]}")
+    #     paint_img = src_img.copy()
+    #
+    #     active_contour(sobel_result, ALPHA, BETA, GAMMA)
+    #     new_points = np.array(points).astype(np.int32)
+    #
+    #     if np.array_equal(current_points, new_points):
+    #         print(f"current points are the same as new points, steps: {step}")
+    #         break
+    #
+    #     draw_points(paint_img)
+    #     cv.drawContours(paint_img, [new_points], 0, color=COLOR_RED, thickness=2, lineType=cv.FILLED)
+    #     cv.imshow('test_img1', paint_img)
+    #     cv.waitKey(50)
+    #
+    # print(f"Done!")
+    # cv.imshow('test_img1', paint_img)
+    # cv.waitKey(0)
