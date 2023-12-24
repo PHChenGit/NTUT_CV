@@ -3,7 +3,6 @@ import numpy as np
 
 COLOR_RED = (0, 0, 255)
 points = []
-energy_min = []
 MAX_ITERATIONS = 500
 
 def flatten(arr):
@@ -116,7 +115,6 @@ def set_init_points(img):
     for i in range(num_points):
         point = (int(circle_points_x[i]), int(circle_points_y[i]))
         points.append(point)
-        energy_min.append(np.inf)
 
     draw_points(img)
     return img
@@ -146,18 +144,16 @@ def active_contour(magnitude, alpha, beta, gamma):
 
         for x in range(-1, 2):
             for y in range(-1, 2):
-                try:
-                    curr_point = (point_x + x, point_y + y)
-                    energy_cont = cal_energy_contour(curr_point, prev_point)
-                    energy_curve = cal_energy_curve(curr_point, prev_point, next_point)
-                    energy_total = alpha * energy_cont + beta * energy_curve + gamma * (-magnitude[point_x][point_y])
+                curr_point = (point_x + x, point_y + y)
+                energy_cont = cal_energy_contour(curr_point, prev_point)
+                energy_curve = cal_energy_curve(curr_point, prev_point, next_point)
+                energy_total = alpha * energy_cont + beta * energy_curve + gamma * (-magnitude[point_x][point_y])
+                # energy_total = alpha * energy_cont + beta * energy_curve
 
-                    if energy_total < e_min:
-                        # print(f"e_total: {energy_total}, e_min: {e_min}")
-                        e_min = energy_total
-                        points[idx] = curr_point
-                except:
-                    print(f"e_cont: {energy_cont}, e_curv: {energy_curve}, magnitude: {magnitude[point_x][point_y]}")
+                if energy_total < e_min:
+                    # print(f"e_total: {energy_total}, e_min: {e_min}")
+                    e_min = energy_total
+                    points[idx] = curr_point
 
     return
 
@@ -169,32 +165,33 @@ if __name__ == '__main__':
     gray_img = convert_to_gray(copy_src_img)
     blured_img = gaussian_blur(gray_img, 3, 1.0)
     sobel_result = sobel(blured_img)
-    cv.imshow('sobel', sobel_result.astype(np.uint8))
-    cv.waitKey(0)
-
-    # paint_img = src_img.copy()
-    #
-    # ALPHA = 0.3
-    # BETA = 0.23
-    # GAMMA = 0.9
-    #
-    # for step in range(MAX_ITERATIONS):
-    #     current_points = np.array(points).astype(np.int32)
-    #     # print(f"curren points: {current_points[0]}")
-    #     paint_img = src_img.copy()
-    #
-    #     active_contour(sobel_result, ALPHA, BETA, GAMMA)
-    #     new_points = np.array(points).astype(np.int32)
-    #
-    #     if np.array_equal(current_points, new_points):
-    #         print(f"current points are the same as new points, steps: {step}")
-    #         break
-    #
-    #     draw_points(paint_img)
-    #     cv.drawContours(paint_img, [new_points], 0, color=COLOR_RED, thickness=2, lineType=cv.FILLED)
-    #     cv.imshow('test_img1', paint_img)
-    #     cv.waitKey(50)
-    #
-    # print(f"Done!")
-    # cv.imshow('test_img1', paint_img)
+    # cv.imshow('sobel', sobel_result.astype(np.uint8))
     # cv.waitKey(0)
+
+    paint_img = src_img.copy()
+
+    ALPHA = 0.01
+    BETA = 0.6
+    GAMMA = 0.7
+
+    for step in range(MAX_ITERATIONS):
+        current_points = np.array(points).astype(np.int32)
+        paint_img = src_img.copy()
+
+        active_contour(sobel_result, ALPHA, BETA, GAMMA)
+        new_points = np.array(points).astype(np.int32)
+
+        if np.array_equal(current_points, new_points):
+            print(f"current points are the same as new points, steps: {step}")
+            break
+
+        draw_points(paint_img)
+        cv.drawContours(paint_img, [new_points], 0, color=COLOR_RED, thickness=2, lineType=cv.FILLED)
+        cv.imshow('test_img1', paint_img)
+        cv.waitKey(50)
+
+    print(f"Done!")
+    draw_points(paint_img)
+    cv.drawContours(paint_img, [points], 0, color=COLOR_RED, thickness=2, lineType=cv.FILLED)
+    cv.imshow('test_img1', paint_img)
+    cv.waitKey(0)
