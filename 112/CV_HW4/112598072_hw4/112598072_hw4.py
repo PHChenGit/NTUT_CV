@@ -3,7 +3,7 @@ import numpy as np
 
 COLOR_RED = (0, 0, 255)
 points = []
-MAX_ITERATIONS = 500
+MAX_ITERATIONS = 1000
 
 def flatten(arr):
     res = []
@@ -147,8 +147,7 @@ def active_contour(magnitude, alpha, beta, gamma):
                 curr_point = (point_x + x, point_y + y)
                 energy_cont = cal_energy_contour(curr_point, prev_point)
                 energy_curve = cal_energy_curve(curr_point, prev_point, next_point)
-                energy_total = alpha * energy_cont + beta * energy_curve + gamma * (-magnitude[point_x][point_y])
-                # energy_total = alpha * energy_cont + beta * energy_curve
+                energy_total = alpha * energy_cont + beta * energy_curve + gamma * (-magnitude[curr_point[1]][curr_point[0]])
 
                 if energy_total < e_min:
                     # print(f"e_total: {energy_total}, e_min: {e_min}")
@@ -165,14 +164,14 @@ if __name__ == '__main__':
     gray_img = convert_to_gray(copy_src_img)
     blured_img = gaussian_blur(gray_img, 3, 1.0)
     sobel_result = sobel(blured_img)
-    # cv.imshow('sobel', sobel_result.astype(np.uint8))
-    # cv.waitKey(0)
+    cv.imshow('sobel', sobel_result.astype(np.uint8))
+    cv.waitKey(0)
 
     paint_img = src_img.copy()
 
-    ALPHA = 0.01
-    BETA = 0.6
-    GAMMA = 0.7
+    ALPHA = 0.1
+    BETA = 0.8
+    GAMMA = 2.0
 
     for step in range(MAX_ITERATIONS):
         current_points = np.array(points).astype(np.int32)
@@ -192,6 +191,6 @@ if __name__ == '__main__':
 
     print(f"Done!")
     draw_points(paint_img)
-    cv.drawContours(paint_img, [points], 0, color=COLOR_RED, thickness=2, lineType=cv.FILLED)
+    cv.drawContours(paint_img, [np.array(points).astype(np.int32)], 0, color=COLOR_RED, thickness=2, lineType=cv.FILLED)
     cv.imshow('test_img1', paint_img)
     cv.waitKey(0)
